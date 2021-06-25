@@ -1,0 +1,4 @@
+rootProject.name = "gradle-pom-use"
+include ':app'
+include ':gradle_pom'
+include ':gradle_pom_child'

@@ -1,0 +1,110 @@
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+project.group = 'com.pom.use'
+project.version = '1.0.0'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation('androidx.appcompat:appcompat:1.3.0') {
+
+    }
+
+    implementation('com.google.android.material:material:1.0.0') {
+        exclude group: 'androidx.transition', module: 'transition'
+        exclude group: 'androidx.annotation', module: 'annotation'
+    }
+
+    implementation('com.miniapp.tools:miniapp_annotation:1.0.7') {
+    }
+    testImplementation 'junit:junit:4.+'
+//    implementation project(':amap_miniapp_pom_child')
+//    implementation files('libs/picasso-2.8.aar')
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+}
+
+
+publishing {
+    publications {
+        song(MavenPublication) {
+            artifactId = 'pom_demo'
+            pom.withXml {
+
+                DependencySet dependenciesSet = project.getConfigurations().getByName('releaseRuntimeClasspath').getIncoming().getDependencies()
+                if (dependenciesSet.isEmpty()) {
+                    return
+                }
+                Node dependenciesNode = it.asNode().appendNode('dependencies')
+                dependenciesSet.all {
+
+                    if (it instanceof ModuleDependency) {
+                        Node dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', it.group)
+                        dependencyNode.appendNode('artifactId', it.name)
+                        dependencyNode.appendNode('version', it.version)
+
+                        if (!it.transitive) {
+                            Node exclusionsNode = dependencyNode.appendNode('exclusions')
+                            Node exclusionNode = exclusionsNode.appendNode('exclusion')
+                            exclusionNode.appendNode('groupId', '*')
+                            exclusion.appendNode('artifactId', '*')
+                        } else if (!it.getExcludeRules().isEmpty()) {
+                            Node exclusionsNode = dependencyNode.appendNode('exclusions')
+                            for (org.gradle.api.artifacts.ExcludeRule rule : it.getExcludeRules()) {
+                                Node exclusionNode = exclusionsNode.appendNode('exclusion')
+                                exclusionNode.appendNode('groupId', rule.group)
+                                exclusionNode.appendNode('artifactId', rule.module)
+                            }
+                        }
+                        it.artifacts?.each {
+                            if (it.type != null) {
+                                dependencyNode.appendNode('type', it.type)
+                            }
+                            if (it.classifier != null) {
+                                dependencyNode.appendNode('classifier', it.classifier)
+                            }
+                        }
+                    }
+
+                }
+            }
+
+        }
+    }
+
+    repositories {
+        mavenLocal()
+    }
+}
+
+
+
